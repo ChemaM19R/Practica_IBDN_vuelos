@@ -1,0 +1,6 @@
+[0m[[0m[0mdebug[0m] [0m[0m"not up to date. inChanged = true, force = true[0m
+[0m[[0m[0mdebug[0m] [0m[0mUpdating ...[0m
+[0m[[0m[0mdebug[0m] [0m[0mDone updating [0m
+[0m[[0m[33mwarn[0m] [0m[0mFound version conflict(s) in library dependencies; some are suspected to be binary incompatible:[0m
+[0m[[0m[33mwarn[0m] [0m[0m	* org.mongodb:mongodb-driver-sync:5.1.4 is selected over [5.1.1,5.1.99)[0m
+[0m[[0m[33mwarn[0m] [0m[0m	    +- org.mongodb.spark:mongo-spark-connector_2.12:10.4.1 (depends on [5.1.1,5.1.99))[0m

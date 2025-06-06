@@ -1,0 +1,18 @@
+Manifest-Version: 1.0
+Automatic-Module-Name: org.mongodb.bson.record.codec
+Bnd-LastModified: 1725388730332
+Build-Version: 5.1.4
+Bundle-ManifestVersion: 2
+Bundle-Name: bson-record-codec
+Bundle-SymbolicName: org.mongodb.bson-record-codec
+Bundle-Version: 5.1.4
+Created-By: 17 (Oracle Corporation)
+Export-Package: org.bson.codecs.record;uses:="org.bson.codecs,org.bson
+ .codecs.configuration";version="5.1.4"
+Import-Package: javax.annotation,org.bson;version="[5.1,6)",org.bson.a
+ ssertions;version="[5.1,6)",org.bson.codecs;version="[5.1,6)",org.bso
+ n.codecs.configuration;version="[5.1,6)",org.bson.codecs.pojo.annotat
+ ions;version="[5.1,6)",org.bson.diagnostics;version="[5.1,6)"
+Require-Capability: osgi.ee;filter:="(&(osgi.ee=JavaSE)(version=17))"
+Tool: Bnd-5.1.2.202007211702
+
