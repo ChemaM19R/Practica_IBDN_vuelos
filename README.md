@@ -26,7 +26,7 @@ Lo primero que vamos a hacer es descargarnos el código del repositorio a travé
 ```
   git clone https://github.com/ChemaM19R/Practica_IBDN_vuelos.git practica_creativa-master
 
-``
+```
 
 Una vez hecho esto accedemos a la carpeta donde hemos guardado los archivos.
 
