@@ -24,21 +24,22 @@ Este repositorio da el código necesario para realizar predicciones del retraso 
 Lo primero que vamos a hacer es descargarnos el código del repositorio a través de un git clone:
 
 ```
-  git clone ...
+  git clone https://github.com/ChemaM19R/Practica_IBDN_vuelos.git practica_creativa-master
 
-´´´
+``
+
 Una vez hecho esto accedemos a la carpeta donde hemos guardado los archivos.
 
 ```
   cd practiva_creativa_master
 
-´´´
+``
 Tras acceder a la carpeta desplegamos los contenedores definidos en el docker-compose.yml para tener los servicios accesibles en la red.
 ```
   docker compose build 
   docker compose up
 
-´´´
+``
 Después de esperar unos segundos, a que se carguen las imágenes de los contenedores y se desplieguen los servicios podríamos ver que funciona todo correctamente desde la terminal ejecutando el comando :
 ```
 docker ps 
@@ -78,6 +79,20 @@ Tendriamos que meternos en http://localhost:5001/flights/delays/predict_kafka y 
 ## KAFKA
 
 Podemos acceder al contenedor de Kafka, listar los tópicos desplegados, y podriamos visualizarlos creando consumers dentro del contenedor.
+```
+cd bin
+
+kafka-topics.sh --bootstrap-server localhost:9092 --list
+
+kafka-console-consumer.sh \
+    --bootstrap-server localhost:9092 \
+    --topic flight-delay-ml-request \
+    --from-beginning
+kafka-console-consumer.sh \
+    --bootstrap-server localhost:9092 \
+    --topic flight-delay-ml-response \
+    --from-beginning
+``
 
 ## MONGO
 
