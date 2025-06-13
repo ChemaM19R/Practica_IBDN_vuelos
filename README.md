@@ -1,20 +1,20 @@
 # Introducción
 Este repositorio da el código necesario para realizar predicciones del retraso que pueden llegar a tener unos vuelos. Este código utiliza servicios como:
 
- Kafka:Se encarga de balancear el paso de mensajes a partir de dos tópicos (request y response), está conectado con Flask (producer de peticiones y consumer de predicciones), Spark (producer de predicciones).
+ --> Kafka:Se encarga de balancear el paso de mensajes a partir de dos tópicos (request y response), está conectado con Flask (producer de peticiones y consumer de predicciones), Spark (producer de predicciones).
 
- Mongo: Base de datos (agile_data_science) que almacena los datos necesarios para poder hacer las predicciones desde Spark (colección:origin_dest_distances) y además almacena las propias `predicciones (colección : flight_delay_ml_response).
+ --> Mongo: Base de datos (agile_data_science) que almacena los datos necesarios para poder hacer las predicciones desde Spark (colección:origin_dest_distances) y además almacena las propias `predicciones (colección : flight_delay_ml_response).
 
- Spark: Se encarga de recibir las peticiones generadas por Flask,a través de Kafka y realizar las predicciones accediendo al archivo de los modelos, estos modelos son generados con el archivo "train_spark_mllib_model.py". Además se almacenan dichas predicciones tanto en Mongo como en el tópico de Kafka de las respuestas que posteriormente será consumido por Flask como en HDFS a través del namenode. El código está en el archivo MakePrediction.scala, este archivo hay que compilarlo con sbt para poder generar un jar, de todas formas en el repositorio está el jar compilado, en caso de cambios en el archivo habría que volver a compilarlo para actualizarlo (sbt compile y sbt package en la carpeta flight_prediction)
+ --> Spark: Se encarga de recibir las peticiones generadas por Flask,a través de Kafka y realizar las predicciones accediendo al archivo de los modelos, estos modelos son generados con el archivo "train_spark_mllib_model.py". Además se almacenan  dichas predicciones tanto en Mongo como en el tópico de Kafka de las respuestas que posteriormente será consumido por Flask como en HDFS a través del namenode. El código está en el archivo MakePrediction.scala, este archivo hay que compilarlo con sbt  para poder generar un jar, de todas formas en el repositorio está el jar compilado, en caso de cambios en el archivo habría que volver a compilarlo para actualizarlo (sbt compile y sbt package en la carpeta flight_prediction)
 
- Flask: Es el encargado de realizar las peticiones directamente desde la página web produciéndolas en el tópico de Kafka de request y obtiene las predicciones consumiéndolas desde el tópico de Kafka de response.
+ --> Flask: Es el encargado de realizar las peticiones directamente desde la página web produciéndolas en el tópico de Kafka de request y obtiene las predicciones consumiéndolas desde el tópico de Kafka de response.
 
- Nifi: Servicio que orquesta el proceso de consumir las predicciones desde el tópico de kafka de response y guarda las guarda cada 10 segundos en ficheros txt.
+ --> Nifi: Servicio que orquesta el proceso de consumir las predicciones desde el tópico de kafka de response y guarda las guarda cada 10 segundos en ficheros txt.
  Su flujo está compuesto por dos procesadores, uno para consumir desde kafka (kafka_consumer) y otro para guardar las predicciones(Putfile)
 
- HDFS: Se compone de un datanode(almacén de datos) y el namenode(controlador); se encargan de almacenar las predicciones en formato csv.
+ --> HDFS: Se compone de un datanode(almacén de datos) y el namenode(controlador); se encargan de almacenar las predicciones en formato csv.
                                                                                                                                                                       
- Airflow: A través de un DAG almacenado en el archivo 'setup.py' entrena el modelo con el archivo "train_spark_mllib_model.py" con MLFLOW para que los modelos puedan ser utilizables por Spark.
+ --> Airflow: A través de un DAG almacenado en el archivo 'setup.py' entrena el modelo con el archivo "train_spark_mllib_model.py" con MLFLOW para que los modelos puedan ser utilizables por Spark.
 
 
 
