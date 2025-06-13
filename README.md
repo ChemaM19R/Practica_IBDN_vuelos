@@ -92,7 +92,7 @@ kafka-console-consumer.sh \
     --bootstrap-server localhost:9092 \
     --topic flight-delay-ml-response \
     --from-beginning
-``
+```
 
 ## MONGO
 
