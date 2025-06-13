@@ -44,7 +44,7 @@ Después de esperar unos segundos, a que se carguen las imágenes de los contene
 ```
 docker ps 
 
-´´´
+``
 
 El output de este comando debería mostrar todos los contenedores que se quieren desplegar.
 
