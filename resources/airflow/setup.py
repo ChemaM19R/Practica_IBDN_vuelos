@@ -58,10 +58,17 @@ train_classifier_model_operator = BashOperator(
   params = {
     "master": "local[8]",
     "filename": "resources/train_spark_mllib_model.py",
-    "base_path": "{}/".format(PROJECT_HOME)
+    "base_path": "/"
   },
   dag=training_dag
 )
+
+
+
+
+
+train_classifier_model_operator 
+
 
 # The model training depends on the feature extraction
 #train_classifier_model_operator.set_upstream(extract_features_operator)

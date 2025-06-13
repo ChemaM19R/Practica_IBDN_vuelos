@@ -1,7 +1,12 @@
 import sys, os, re
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 from pymongo import MongoClient
 from bson import json_util
+from kafka import KafkaConsumer
+import threading
+
+import time
+
 
 # Configuration details
 import config
@@ -511,23 +516,86 @@ def flight_delays_page_kafka():
   
   return render_template('flight_delays_predict_kafka.html', form_config=form_config)
 
+from kafka.admin import KafkaAdminClient
+
+predictions_store = {}
+
+# Función para verificar si el tópico está disponible
+def wait_for_topic(topic, bootstrap_servers, timeout=30):
+    admin_client = KafkaAdminClient(bootstrap_servers=bootstrap_servers)
+    start_time = time.time()
+    
+    while True:
+        # Obtener lista de tópicos
+        topics = admin_client.list_topics()
+        if topic in topics:
+            print(f"Tópico '{topic}' está disponible.")
+            break
+        elif time.time() - start_time > timeout:
+            print(f"Tiempo de espera agotado para el tópico '{topic}'.")
+            break
+        else:
+            print(f"Tópico '{topic}' no disponible. Esperando...")
+            time.sleep(2)  
+
+# Función para consumir mensajes desde Kafka en un hilo de fondo
+def consume_messages():
+    consumer = KafkaConsumer(
+        "flight-delay-ml-response", 
+        bootstrap_servers=['kafka:9092'],
+        auto_offset_reset='earliest',
+        enable_auto_commit=False,
+        value_deserializer=lambda m: safe_json_deserialize(m)
+    )
+    
+    # Consumir mensajes y almacenar las predicciones en el diccionario
+    for msg in consumer:
+        if msg.value:  # Verificar si el mensaje tiene contenido
+            unique_id = msg.value.get("UUID")
+            if unique_id:
+                predictions_store[unique_id] = msg.value
+
+# Deserializador seguro para Kafka
+def safe_json_deserialize(m):
+    try:
+        return json.loads(m.decode('utf-8'))
+    except json.JSONDecodeError as e:
+        print(f"Error al deserializar mensaje Kafka: {e}")
+        return None  # Retorna None si no se puede deserializar
+
+# Iniciar el consumidor en un hilo de fondo cuando se arranca la aplicación
+def start_kafka_consumer():
+    # Espera hasta que el tópico esté disponible
+    wait_for_topic('flight-delay-ml-response', ['kafka:9092'])
+    
+    # Inicia el hilo para consumir mensajes de Kafka
+    kafka_thread = threading.Thread(target=consume_messages)
+    kafka_thread.daemon = True  # Hilo en segundo plano
+    kafka_thread.start()
+
+# Llamada a esta función en el inicio de tu aplicación para empezar a consumir
+start_kafka_consumer()
+
 @app.route("/flights/delays/predict/classify_realtime/response/<unique_id>")
 def classify_flight_delays_realtime_response(unique_id):
-  """Serves predictions to polling requestors"""
-  
-  prediction = client.agile_data_science.flight_delay_ml_response.find_one(
-    {
-      "UUID": unique_id
-    }
-  )
-  
-  response = {"status": "WAIT", "id": unique_id}
-  if prediction:
-    response["status"] = "OK"
-    response["prediction"] = prediction
-  
-  return json_util.dumps(response)
+    """Serves predictions to polling requestors"""
+    
+    # Espera por la predicción en el almacenamiento temporal
+    response = {"status": "WAIT", "id": unique_id}
 
+    # Buscar la predicción en el almacenamiento temporal (predictions_store)
+    prediction = predictions_store.get(unique_id)
+    
+    if prediction:
+        response["status"] = "OK"
+        response["prediction"] = prediction
+    else:
+        print(f"Predicción para {unique_id} no disponible aún.")
+        # Puedes agregar un tiempo de espera para evitar consultas infinitas
+        time.sleep(1)  # Simulando que el sistema sigue esperando la predicción
+
+    return jsonify(response)
+    
 def shutdown_server():
   func = request.environ.get('werkzeug.server.shutdown')
   if func is None:

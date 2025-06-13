@@ -21,3 +21,6 @@ findspark
 iso8601
 urllib3==1.24
 joblib
+mlflow
+apache-airflow-providers-docker
+

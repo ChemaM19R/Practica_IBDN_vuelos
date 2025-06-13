@@ -175,16 +175,16 @@ object MakePrediction {
       .option("checkpointLocation", "/tmp/checkpoint-kafka")
       .outputMode("append")
       .start()
-      
-    val hdfsPath = "hdfs://namenode1:8020/flight_predictions"
+     
 
-    // Escribir las predicciones en HDFS en formato Parquet
     val hdfsQuery = finalPredictions
       .writeStream
-      .format("json")  // Puedes usar "csv" o "json" también si prefieres
-      .option("checkpointLocation", "/tmp/checkpoint-hdfs")  // El directorio de checkpoint de Spark
-      .option("path", hdfsPath)  // Ruta de HDFS donde guardar los archivos
+      .format("csv") 
       .outputMode("append")
+      .option("path", "hdfs://namenode1:8020/user/spark/predictions")  
+      .option("checkpointLocation", "/tmp/checkpoint-hdfs")  
+      .option("header","true")
+      .option("delimiter",",")
       .start()
 
     val consoleOutput = finalPredictions.writeStream

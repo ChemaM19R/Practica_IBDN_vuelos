@@ -9,6 +9,9 @@ services:
       - "27017:27017"
     volumes:
     - ./resources:/resources
+    networks:
+      - default
+      
   mongo-init:
     image: mongo:4.0
     depends_on:
@@ -16,6 +19,8 @@ services:
     volumes:
       - ./resources:/resources
     entrypoint: [ "bash", "-c", "sleep 10 && /resources/import_distances.sh" ]
+    networks:
+      - default
       
 
   kafka:
@@ -51,10 +56,6 @@ services:
       - kafka
     networks:
       - default
-    volumes:
-      - ./nifi_bueno:/opt/nifi/nifi-current/output-data
-    
-    
     
   flask:
     build: ./resources/web
@@ -85,6 +86,8 @@ services:
     volumes:
       - ./models:/models
       - ./flight_prediction:/flight_prediction
+    networks:
+      - default  
       
 
   spark-worker-1:
@@ -102,6 +105,8 @@ services:
     volumes:
       - ./models:/models
       - ./flight_prediction:/flight_prediction
+    networks:
+      - default  
       
   spark-worker-2:
     image: bitnami/spark:3.5.3
@@ -118,6 +123,8 @@ services:
     volumes:
       - ./models:/models
       - ./flight_prediction:/flight_prediction
+    networks:
+      - default  
       
   spark-submit:
     image: bitnami/spark:3.5.3
@@ -131,36 +138,35 @@ services:
     environment:
       - "SPARK_MASTER=spark://spark-master:7077"
       - "constraint:node==spark-master"
-      - "SERVER=${SERVER}"
+      
       - PYSPARK_PYTHON=python3       
       - HOME=/tmp 
-    command: >
-      spark-submit --master spark://spark-master:7077 --conf spark.jars.ivy=/tmp/.ivy2 --packages org.mongodb.spark:mongo-spark-connector_2.12:10.4.1,org.apache.spark:spark-sql-kafka-0-10_2.12:3.5.3 --class es.upm.dit.ging.predictor.MakePrediction /flight_prediction/target/scala-2.12/flight_prediction_2.12-0.1.jar
-
     volumes:
       - ./flight_prediction:/flight_prediction
-      - ./models:/models
+      - ./models:/models  
+      - ./wait_for_model_and_run.sh:/wait_for_model_and_run.sh  
+    command: >
+      bash /wait_for_model_and_run.sh 
+    networks:
+      - default  
       
 
   namenode1:
     image: bde2020/hadoop-namenode:2.0.0-hadoop3.2.1-java8
     container_name: namenode1
     ports:
-      - "50070:50070"   # Interfaz web del Namenode
-      - "9870:9870"     # Interfaz web del Namenode HDFS
+      - "9870:9870"   
+      - "8020:8020"
     environment:
       - CLUSTER_NAME=example1
       - INIT_DAEMON_STEP=setup_hdfs
       - HDFS_CONF_dfs_webhdfs_enabled=true
       - HDFS_CONF_dfs_permissions_enabled=false
-      - CORE_CONF_hadoop_proxyuser_hue_hosts=*
-      - CORE_CONF_hadoop_proxyuser_hue_groups=*
+      - HDFS_CONF_dfs_disk_balancer_enabled=false
     volumes:
-      - ./volumes/namenode1:/hadoop/dfs/name
-      - ./init-namenode.sh:/init-namenode.sh
+      - namenode1:/hadoop/dfs/name
     networks:
       - default
-    entrypoint: ["/bin/bash", "/init-namenode.sh"]
 
   datanode1:
     image: bde2020/hadoop-datanode:2.0.0-hadoop3.2.1-java8
@@ -168,14 +174,38 @@ services:
     environment:
       - CORE_CONF_fs_defaultFS=hdfs://namenode1:8020
       - HDFS_CONF_dfs_webhdfs_enabled=true
-    ports:
-      - "50075:50075"   # Interfaz web del Datanode
-      - "9864:9864"     # Puerto HDFS del Datanode
     volumes:
-      - ./volumes/datanode1:/hadoop/dfs/data
+      - datanode1:/hadoop/dfs/data
+    depends_on:
+      - namenode1
     networks:
       - default
- 
+      
+  airflow:
+    build:
+      context: .
+      dockerfile: Dockerfile_airflow 
+    container_name: airflow_container
+    environment:
+      - AIRFLOW_HOME=/airflow
+      - SPARK_HOME=/opt/spark
+    ports:
+      - "8180:8180"   
+    
+    networks:
+      - default
+    command: bash -c "airflow db init && \
+      airflow users create --username admin --firstname Jose --lastname Pablo --role Admin --email example@email.org --password admin && \
+      supervisord"
+    volumes:
+      - ./models:/models
+        
+      
+      
 networks:
   default:
     driver: bridge
+    
+volumes:
+  namenode1:
+  datanode1:

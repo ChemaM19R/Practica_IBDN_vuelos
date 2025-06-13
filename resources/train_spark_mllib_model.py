@@ -1,7 +1,10 @@
-# !/usr/bin/env python
+
+#!/usr/bin/env python
 
 import sys, os, re
 from os import environ
+import mlflow
+import mlflow.pyfunc
 
 # Pass date and base path to main() from airflow
 def main(base_path):
@@ -53,9 +56,7 @@ def main(base_path):
     StructField("Origin", StringType(), True),      # "Origin":"TUS"
   ])
   
-  input_path = "{}/data/simple_flight_delay_features.jsonl.bz2".format(
-    base_path
-  )
+  input_path = "/data/simple_flight_delay_features.jsonl.bz2"
   features = spark.read.json(input_path, schema=schema)
   features.first()
   
@@ -81,7 +82,7 @@ def main(base_path):
   features_with_route.show(6)
   
   #
-  # Use pysmark.ml.feature.Bucketizer to bucketize ArrDelay into on-time, slightly late, very late (0, 1, 2)
+  # Use pyspark.ml.feature.Bucketizer to bucketize ArrDelay into on-time, slightly late, very late (0, 1, 2)
   #
   from pyspark.ml.feature import Bucketizer
   
@@ -94,7 +95,7 @@ def main(base_path):
   )
   
   # Save the bucketizer
-  arrival_bucketizer_path = "{}/models/arrival_bucketizer_2.0.bin".format(base_path)
+  arrival_bucketizer_path = "/models/arrival_bucketizer_2.0.bin"
   arrival_bucketizer.write().overwrite().save(arrival_bucketizer_path)
   
   # Apply the bucketizer
@@ -120,8 +121,7 @@ def main(base_path):
     ml_bucketized_features = ml_bucketized_features.drop(column)
     
     # Save the pipeline model
-    string_indexer_output_path = "{}/models/string_indexer_model_{}.bin".format(
-      base_path,
+    string_indexer_output_path = "/models/string_indexer_model_{}.bin".format(
       column
     )
     string_indexer_model.write().overwrite().save(string_indexer_output_path)
@@ -141,7 +141,7 @@ def main(base_path):
   final_vectorized_features = vector_assembler.transform(ml_bucketized_features)
   
   # Save the numeric vector assembler
-  vector_assembler_path = "{}/models/numeric_vector_assembler.bin".format(base_path)
+  vector_assembler_path = "/models/numeric_vector_assembler.bin"
   vector_assembler.write().overwrite().save(vector_assembler_path)
   
   # Drop the index columns
@@ -162,12 +162,6 @@ def main(base_path):
   )
   model = rfc.fit(final_vectorized_features)
   
-  # Save the new model over the old one
-  model_output_path = "{}/models/spark_random_forest_classifier.flight_delays.5.0.bin".format(
-    base_path
-  )
-  model.write().overwrite().save(model_output_path)
-  
   # Evaluate model using test data
   predictions = model.transform(final_vectorized_features)
   
@@ -177,14 +171,40 @@ def main(base_path):
     labelCol="ArrDelayBucket",
     metricName="accuracy"
   )
+  
+  # Calculate accuracy
   accuracy = evaluator.evaluate(predictions)
   print("Accuracy = {}".format(accuracy))
+  
+  # Start an MLflow run
+  with mlflow.start_run():
+
+    # Save the Random Forest model in MLflow
+    mlflow.spark.log_model(model, "random_forest_model")
+
+    # Log the parameters and metrics
+    mlflow.log_param("maxBins", 4657)
+    mlflow.log_param("maxMemoryInMB", 1024)
+    mlflow.log_metric("accuracy", accuracy)
+    
+    # You can also log the model paths if needed
+    mlflow.log_artifact(arrival_bucketizer_path)
+    mlflow.log_artifact(vector_assembler_path)
+    
+    print("Model saved to MLflow!")
+  
+  # Save the new model over the old one
+  model_output_path = "/models/spark_random_forest_classifier.flight_delays.5.0.bin"
+  model.write().overwrite().save(model_output_path)
   
   # Check the distribution of predictions
   predictions.groupBy("Prediction").count().show()
   
   # Check a sample
   predictions.sample(False, 0.001, 18).orderBy("CRSDepTime").show(6)
+  
+  open("/models/my_model.pkl", "w").close()
 
 if __name__ == "__main__":
   main(sys.argv[1])
+
