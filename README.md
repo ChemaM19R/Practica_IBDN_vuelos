@@ -33,18 +33,18 @@ Una vez hecho esto accedemos a la carpeta donde hemos guardado los archivos.
 ```
   cd practiva_creativa_master
 
-``
+```
 Tras acceder a la carpeta desplegamos los contenedores definidos en el docker-compose.yml para tener los servicios accesibles en la red.
 ```
   docker compose build 
   docker compose up
 
-``
+```
 Después de esperar unos segundos, a que se carguen las imágenes de los contenedores y se desplieguen los servicios podríamos ver que funciona todo correctamente desde la terminal ejecutando el comando :
 ```
 docker ps 
 
-``
+```
 
 El output de este comando debería mostrar todos los contenedores que se quieren desplegar.
 
